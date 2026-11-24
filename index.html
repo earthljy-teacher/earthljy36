@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>화재 유형 탐구 미션</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gaegu&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+/* VOICE: 소방 훈련 게임 — 긴박하지만 친근하게
+   IDEA: 소방서 출동 미션 보드
+   PICTURE: 캔버스 속 실제처럼 타오르는 불과 소화 약제 분사
+   COLOUR/TYPE: 소방차 빨강 + 물 청록 + 경고 노랑, a시네마 단일 글꼴, 굵게 대신 색으로 강조
+   LAYOUT: 상단 로고·점수, 6단계 진행 바, 단계별 미션 카드 */
+:root{--bg:#fff8f3;--ink:#2b2220;--sub:#6d5f59;--red:#d7263d;--red2:#a3162a;--teal:#0f7b7b;--yel:#e89b00;--line:#ecdcd2;--card:#fff;
+--A:#8a5a2b;--B:#d07a00;--C:#1f6fd1;--K:#b0306a;--ok:#1b9a57;--no:#d7263d;--gray:#b9aea8;color-scheme:light}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:'a시네마L','a시네마','aCinemaL','a시네마M','Gaegu',sans-serif;font-weight:400;font-size:18px;line-height:1.55;overflow-x:clip}
+b,strong,h1,h2,h3,h4,th{font-weight:400}
+button,select,input{font:inherit;font-weight:400;color:inherit}
+.hl{color:var(--red)} .ht{color:var(--teal)} .hy{color:var(--yel)}
+.cA{color:var(--A)}.cB{color:var(--B)}.cC{color:var(--C)}.cK{color:var(--K)}
+/* header */
+header{background:linear-gradient(120deg,var(--red2),var(--red) 60%,#ef5b2a);color:#fff;padding:14px max(4vw,14px);display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header h1{margin:0;font-size:clamp(24px,3.4vw,36px);line-height:1.1;flex:1 1 260px}
+header h1 small{display:block;font-size:16px;opacity:.9;margin-top:4px}
+.brand{display:flex;align-items:center;gap:10px;background:#fff;color:var(--ink);border-radius:14px;padding:6px 12px 6px 6px;margin-left:auto}
+.brand img{width:54px;height:54px}
+.brand div{font-size:15px;line-height:1.25}.brand div span{color:var(--teal)}
+/* nav */
+.navwrap{position:sticky;top:0;z-index:20;background:#fff;border-bottom:2px solid var(--line);padding:10px max(4vw,14px);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.steps{display:flex;gap:8px;flex-wrap:wrap;flex:1 1 480px}
+.stp{display:flex;align-items:center;gap:8px;border:2px solid var(--line);background:#fff;border-radius:999px;padding:4px 12px 4px 4px;cursor:pointer;min-height:44px;transition:transform .15s}
+.stp:hover{transform:translateY(-2px)}
+.stp i{font-style:normal;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--gray);color:#fff;font-size:17px}
+.stp.pass i{background:var(--ok)}.stp.fail i{background:var(--no)}
+.stp.cur{border-color:var(--ink)}
+.stp span{font-size:15px}
+.stp.rep i{background:var(--yel)}
+.score{display:flex;align-items:center;gap:10px;background:#2b2220;color:#fff;border-radius:14px;padding:6px 14px}
+.score .big{font-size:28px;color:#ffd166;line-height:1}
+.score .gr{font-size:22px;background:#fff;color:var(--red);border-radius:8px;padding:0 10px}
+main{max-width:1240px;margin:0 auto;padding:22px max(4vw,14px) 60px}
+.card{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:clamp(16px,2.4vw,26px);margin-bottom:18px}
+.mtitle{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.mtitle h2{margin:0;font-size:clamp(24px,3vw,32px);line-height:1.15}
+.tag{display:inline-block;border-radius:999px;padding:2px 12px;font-size:15px;background:#fde7e3;color:var(--red2)}
+.crit{background:#f3fbfa;border:2px dashed #a7d8d3;border-radius:12px;padding:10px 14px;font-size:16px;color:#21524f;margin-top:10px}
+.btn{border:0;border-radius:12px;padding:10px 20px;min-height:46px;cursor:pointer;background:var(--red);color:#fff;font-size:18px;box-shadow:0 4px 0 var(--red2);transition:transform .1s}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--red2)}
+.btn.teal{background:var(--teal);box-shadow:0 4px 0 #095555}
+.btn.ghost{background:#fff;color:var(--ink);border:2px solid var(--line);box-shadow:none}
+.btn:disabled{background:var(--gray);box-shadow:none;cursor:not-allowed}
+.btn:focus-visible,.stp:focus-visible,.opt:focus-visible,select:focus-visible{outline:3px solid var(--yel);outline-offset:2px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.grid2{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px}.grid2.g5{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+@media(max-width:860px){.grid2,.grid2.g5{grid-template-columns:minmax(0,1fr)}}
+/* drag */
+.chip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:2px solid #d9c6ba;border-radius:12px;padding:8px 12px;margin:4px;cursor:grab;touch-action:none;user-select:none;font-size:16px;box-shadow:0 3px 0 #e8d8cd}
+.chip.sel{border-color:var(--yel);background:#fff6df}
+.chip.dragging{opacity:.3}
+.chip.ghost{position:fixed;z-index:999;pointer-events:none;transform:rotate(-3deg);box-shadow:0 10px 20px rgba(0,0,0,.2);margin:0}
+.chip.ok{border-color:var(--ok);background:#e8f7ee}.chip.bad{border-color:var(--no);background:#fde8e8;animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.zones{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media(max-width:900px){.zones{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.dz{border:3px dashed var(--line);border-radius:16px;padding:10px;min-height:150px;background:#fffdfb;transition:background .15s}
+.dz.over{background:#fff3d6;border-color:var(--yel)}
+.dz h3{margin:0 0 2px;font-size:22px}.dz p{margin:0 0 6px;font-size:14px;color:var(--sub)}
+.pool{min-height:80px;margin-top:14px;background:#fbf3ee}
+.badge{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:9px;color:#fff;font-size:18px;flex:none}
+.bA{background:var(--A)}.bB{background:var(--B)}.bC{background:var(--C)}.bK{background:var(--K)}
+/* canvas */
+.fig{position:relative;height:340px;border-radius:16px;overflow:hidden;background:linear-gradient(#2a2430,#463440)}
+.fig canvas{position:absolute;inset:0;width:100%;height:100%}
+.fig .lab{position:absolute;left:12px;top:10px;color:#fff;font-size:17px;background:rgba(0,0,0,.35);padding:2px 10px;border-radius:8px}
+.typebtns{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.tb{border:2px solid var(--line);background:#fff;border-radius:12px;padding:6px 12px;min-height:44px;cursor:pointer;display:flex;gap:8px;align-items:center}
+.tb.on{border-color:var(--ink);background:#fff6ef}
+.tb .dot{width:12px;height:12px;border-radius:50%;background:var(--gray)}.tb.seen .dot{background:var(--ok)}
+.note{background:#fff7e6;border-left:5px solid var(--yel);border-radius:8px;padding:10px 14px;font-size:16px;min-height:52px}
+table.ft{width:100%;border-collapse:collapse}
+table.ft td{border-bottom:2px solid var(--line);padding:8px 6px;vertical-align:middle}
+.slot{min-height:56px;padding:4px}
+/* options */
+.case{border:2px solid var(--line);border-radius:16px;padding:14px;margin-bottom:14px;background:#fffdfb}
+.case h3{margin:0 0 6px;font-size:21px;color:var(--teal)}
+.opt{display:block;width:100%;text-align:left;border:2px solid var(--line);background:#fff;border-radius:12px;padding:9px 12px;margin:6px 0;cursor:pointer;min-height:44px;font-size:16px}
+.opt:hover{border-color:#d4b8a8}
+.opt.on{border-color:var(--teal);background:#e9f6f5}
+.opt.good{border-color:var(--ok);background:#e8f7ee}.opt.wrong{border-color:var(--no);background:#fde8e8;color:#8d1c1c}
+.gbtn{border:2px solid var(--line);background:#fff;border-radius:10px;min-width:56px;min-height:44px;cursor:pointer;font-size:18px}
+.gbtn.on{color:#fff;border-color:transparent}
+.gbtn.on.gA{background:var(--A)}.gbtn.on.gB{background:var(--B)}.gbtn.on.gC{background:var(--C)}.gbtn.on.gK{background:var(--K)}
+/* stage4 */
+.tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:10px 0}
+.tool{border:2px solid var(--line);background:#fff;border-radius:14px;padding:8px;cursor:pointer;display:flex;gap:8px;align-items:center;min-height:56px;text-align:left;font-size:16px}
+.tool.on{border-color:var(--teal);background:#e9f6f5}
+.tool svg{flex:none}
+.spray{width:100%;min-height:64px;font-size:21px;touch-action:none;user-select:none}
+.spray.act{background:var(--teal);box-shadow:0 1px 0 #095555;transform:translateY(3px)}
+.log{max-height:170px;overflow:auto;font-size:15px;background:#fbf6f2;border-radius:12px;padding:8px 12px}
+.log p{margin:3px 0}
+.meter{height:16px;background:#eee;border-radius:9px;overflow:hidden}.meter div{height:100%;background:linear-gradient(90deg,var(--yel),var(--red));transition:width .1s}
+/* stage5 */
+.chain{display:grid;grid-template-columns:110px repeat(3,minmax(0,1fr));gap:8px;align-items:center;padding:10px 0;border-bottom:2px solid var(--line)}
+.chain.head{font-size:15px;color:var(--sub);border-bottom:2px solid var(--ink)}
+@media(max-width:860px){.chain{grid-template-columns:minmax(0,1fr)}.chain.head{display:none}}
+select{width:100%;min-height:46px;border:2px solid var(--line);border-radius:10px;padding:6px 8px;background:#fff;font-size:16px}
+select.good{border-color:var(--ok);background:#e8f7ee}select.wrong{border-color:var(--no);background:#fde8e8}
+.tri text{font-family:inherit}
+/* stage6 */
+.scene{height:220px;border-radius:16px;position:relative;overflow:hidden;background:#cfd8dc}
+.scene svg{position:absolute;inset:0;width:100%;height:100%}
+.ordbox{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}
+@media(max-width:700px){.ordbox{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.oslot{border:2px dashed var(--line);border-radius:12px;min-height:70px;padding:8px;font-size:15px;background:#fffdfb}
+.oslot em{font-style:normal;color:var(--red)}
+/* result */
+.res{border-radius:16px;padding:16px 18px;margin-top:16px}
+.res.pass{background:#e8f7ee;border:2px solid #9ad5b2}.res.fail{background:#fdeceb;border:2px solid #f0a9a9}
+.res h3{margin:0 0 6px;font-size:24px}
+/* intro */
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:center}
+@media(max-width:820px){.hero{grid-template-columns:minmax(0,1fr)}}
+.hero h2{font-size:clamp(30px,4.4vw,48px);line-height:1.08;margin:0 0 10px;text-wrap:balance}
+input[type=text]{width:100%;min-height:48px;border:2px solid var(--line);border-radius:12px;padding:8px 12px;font-size:18px;background:#fff}
+.mlist{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0}
+@media(max-width:600px){.mlist{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.mlist div{background:#fff;border:2px solid var(--line);border-radius:12px;padding:8px 10px;font-size:15px}
+.mlist em{font-style:normal;color:var(--red);display:block;font-size:14px}
+table.st{width:100%;border-collapse:collapse;font-size:16px;margin:10px 0}
+table.st th,table.st td{border:2px solid var(--line);padding:8px;text-align:center}
+table.st th{background:#fbefe8}
+table.st td.l{text-align:left}
+.o{color:var(--ok);font-size:22px}.x{color:var(--no);font-size:22px}
+.report{background:#fff;border:3px solid var(--ink);border-radius:18px;padding:clamp(16px,3vw,30px)}
+.rhead{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;border-bottom:3px solid var(--red);padding-bottom:10px;margin-bottom:10px}
+.rhead h2{margin:0;font-size:clamp(28px,4vw,40px);color:var(--red)}
+.gradebox{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.gradebig{width:96px;height:96px;border-radius:20px;background:var(--red);color:#fff;display:grid;place-items:center;font-size:58px}
+.fb p{margin:6px 0;font-size:17px}
+.up{background:#fff7e6;border:2px solid #f3cf7a;border-radius:14px;padding:12px 16px;margin-top:14px}
+.ladder{display:flex;gap:4px;flex-wrap:wrap;margin:8px 0}
+.ladder span{border:2px solid var(--line);border-radius:8px;padding:2px 10px;font-size:15px}
+.ladder span.me{background:var(--red);color:#fff;border-color:var(--red)}
+.fx{animation:pop .5s}
+@keyframes pop{0%{transform:scale(.9);opacity:0}100%{transform:scale(1);opacity:1}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media print{header,.navwrap,.noprint{display:none!important}body{background:#fff}main{padding:0}.report{border:0}}
+</style>
+</head>
+<body>
+<header>
+  <h1>화재 유형 탐구 미션<small>A·B·C·K급 화재를 분류하고, 진압하고, 대피하라!</small></h1>
+  <div class="brand"><img src="data:image/png;base64,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" alt="EARTH LJY 로고"><div>EARTHLJY 안좌고 지영T<br><span>earthljy@ai.jne.kr</span></div></div>
+</header>
+<div class="navwrap">
+  <div class="steps" id="steps"></div>
+  <div class="score"><div><div style="font-size:13px;opacity:.8">현재 점수</div><span class="big" id="hudScore">0</span> / 30</div><span class="gr" id="hudGrade">-</span></div>
+</div>
+<main id="app"></main>
+
+<script>
+{
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const TYPES={A:'A급 (일반 화재)',B:'B급 (유류 화재)',C:'C급 (전기 화재)',K:'K급 (주방 화재)'};
+const STAGE_NAMES=['원인 물질 분류','화재 유형별 특징','화재 사례 진단','소화제 선택 실험','소화 원리 연결','대처·대피 시나리오'];
+const S=STAGE_NAMES.map(()=>({status:null,attempts:0,note:'',errors:[]}));
+const student={name:'',id:''};
+let cur=-1, sims=[], used4={};
+const app=$('#app');
+
+/* ---------- 점수 ---------- */
+const nPass=()=>S.filter(s=>s.status===true).length;
+const anyTried=()=>S.some(s=>s.attempts>0);
+const scoreOf=n=>anyTried()?Math.max(1,n)*5:0;
+const gradeOf=sc=>!anyTried()?'-':sc>=30?'A':sc>=25?'B':sc>=20?'C':sc>=15?'D':'F';
+function hud(){
+  const sc=scoreOf(nPass());
+  $('#hudScore').textContent=sc;$('#hudGrade').textContent=gradeOf(sc)==='-'?'-':gradeOf(sc)+'등급';
+  $('#steps').innerHTML=STAGE_NAMES.map((n,i)=>`<button class="stp ${S[i].status===true?'pass':S[i].status===false?'fail':''} ${cur===i?'cur':''}" data-go="${i}" title="${S[i].status===null?'미수행':S[i].status?'충족':'미충족'}"><i>${i+1}</i><span>${n}</span></button>`).join('')
+   +`<button class="stp rep ${cur===6?'cur':''}" data-go="6"><i>★</i><span>미션 결과</span></button>`;
+}
+$('#steps').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(!b)return;if(!student.name){go(-1);return}go(+b.dataset.go)});
+function go(i){sims.forEach(s=>s.stop());sims=[];cur=i;hud();
+  if(i===-1)intro();else if(i===6)report();else STAGES[i]();
+  window.scrollTo({top:0,behavior:'smooth'});}
+
+function head(i,mission,crit){
+  return `<div class="card fx"><div class="mtitle"><span class="tag">STAGE ${i+1} · 평가 항목 ${'①②③④⑤⑥'[i]}</span><h2>${STAGE_NAMES[i]}</h2>${S[i].attempts?`<span class="tag" style="background:#eef3ff;color:#2d4fa3">재도전 ${S[i].attempts}회째</span>`:''}</div><div>${mission}</div><div class="crit">충족 기준 · ${crit}</div></div>`;
+}
+function finish(i,pass,note,errors){
+  S[i].attempts++;S[i].status=pass;S[i].note=note;S[i].errors=errors;hud();
+  const all=S.every(s=>s.attempts>0);
+  $$('#stagebody button:not([data-keep]), #stagebody select').forEach(b=>b.disabled=true);
+  const box=$('#res');
+  box.innerHTML=`<div class="res ${pass?'pass':'fail'} fx"><h3 class="${pass?'ht':'hl'}">${pass?'항목 충족! 미션 클리어':'항목 미충족 — 다시 도전해 보세요'}</h3>
+  <p>${note}</p>${errors.length?`<ul>${errors.map(e=>`<li>${e}</li>`).join('')}</ul>`:''}
+  <p>현재 점수: <span class="hl">${scoreOf(nPass())}점 (${gradeOf(scoreOf(nPass()))}등급)</span> · 충족 ${nPass()}/6개</p>
+  <div class="row">${!pass?`<button class="btn" data-act="retry">이 단계 다시 수행하기</button>`:''}
+  ${i<5?`<button class="btn teal" data-act="next">다음 단계로</button>`:''}
+  ${all||i===5?`<button class="btn ${pass?'':'ghost'}" data-act="rep">미션 결과 보기</button>`:''}</div></div>`;
+  box.onclick=e=>{const a=e.target.closest('[data-act]')?.dataset.act;if(a==='retry')go(i);if(a==='next')go(nextStage(i));if(a==='rep')go(6)};
+  box.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function nextStage(i){for(let k=i+1;k<6;k++)if(S[k].attempts===0)return k;return i+1<6?i+1:6}
+
+/* ---------- 드래그 앤 드롭 (마우스·터치 겸용, 탭 선택 지원) ---------- */
+function enableDrag(root,accept){
+  let selected=null;
+  root.addEventListener('pointerdown',e=>{
+    const chip=e.target.closest('.chip');if(!chip||root.dataset.lock)return;
+    e.preventDefault();const r=chip.getBoundingClientRect(),sx=e.clientX,sy=e.clientY;let moved=false,ghost=null,over=null;
+    const mv=ev=>{
+      if(!moved&&Math.hypot(ev.clientX-sx,ev.clientY-sy)>6){moved=true;ghost=chip.cloneNode(true);ghost.classList.add('ghost');ghost.style.width=r.width+'px';document.body.appendChild(ghost);chip.classList.add('dragging')}
+      if(!moved)return;
+      ghost.style.left=ev.clientX-(sx-r.left)+'px';ghost.style.top=ev.clientY-(sy-r.top)+'px';
+      const z=document.elementFromPoint(ev.clientX,ev.clientY)?.closest('.dz');const zz=z&&root.contains(z)?z:null;
+      if(zz!==over){over&&over.classList.remove('over');over=zz;over&&over.classList.add('over')}
+    };
+    const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);removeEventListener('pointercancel',up);
+      if(moved){ghost.remove();chip.classList.remove('dragging');if(over){over.classList.remove('over');accept(chip,over)}}
+      else{ if(selected===chip){chip.classList.remove('sel');selected=null}else{selected&&selected.classList.remove('sel');selected=chip;chip.classList.add('sel')} }
+    };
+    addEventListener('pointermove',mv);addEventListener('pointerup',up);addEventListener('pointercancel',up);
+  });
+  root.addEventListener('click',e=>{if(!selected||e.target.closest('.chip')||root.dataset.lock)return;const z=e.target.closest('.dz');if(z){selected.classList.remove('sel');accept(selected,z);selected=null}});
+}
+
+/* ---------- 불 시뮬레이터 (캔버스 입자) ---------- */
+function FireSim(cv,type,o={}){
+  const ctx=cv.getContext('2d');let W=0,H=0,raf;const P=[],SP=[],SM=[];
+  const s={type,intensity:o.intensity??1,spraying:false,tool:null,ash:0,temp:o.temp??25,t:0,spread:1,flash:null,flashT:0,onFrame:null,observe:!!o.observe};
+  const size=()=>{const d=devicePixelRatio||1;W=cv.clientWidth;H=cv.clientHeight;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0)};
+  const ro=new ResizeObserver(size);ro.observe(cv);size();
+  const base=()=>{const bx=W*.6,by=H*.8;return type==='A'?{x:bx,y:by-26,w:W*.16}:type==='B'?{x:bx,y:by-4,w:W*.26}:type==='C'?{x:bx,y:by-52,w:W*.07}:{x:bx,y:by-46,w:W*.12}};
+  const SPC={'물':'#4fb3ff','포말':'#ffffff','이산화탄소':'#e8f4ff','분말':'#ffd2e6','K급':'#d9c2ff'};
+  function scene(){
+    const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#2a2430');g.addColorStop(1,'#4a3540');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    const glow=ctx.createRadialGradient(W*.6,H*.7,10,W*.6,H*.7,W*.5);glow.addColorStop(0,`rgba(255,140,40,${.35*s.intensity})`);glow.addColorStop(1,'rgba(255,140,40,0)');ctx.fillStyle=glow;ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#3b2c2c';ctx.fillRect(0,H*.8,W,H*.2);ctx.fillStyle='rgba(255,255,255,.06)';ctx.fillRect(0,H*.8,W,3);
+    const b=base(),bx=W*.6,by=H*.8;
+    if(type==='A'){
+      if(s.ash>0){ctx.fillStyle='#9a9a9a';ctx.beginPath();ctx.ellipse(bx,by-2,W*.15*Math.min(1,.4+s.ash),8+22*s.ash,0,Math.PI,0);ctx.fill();ctx.fillStyle='#bdbdbd';ctx.beginPath();ctx.ellipse(bx-12,by-6,W*.06*s.ash,6*s.ash+2,0,Math.PI,0);ctx.fill()}
+      const burnt=Math.min(1,s.ash);
+      [[-1,-.25],[1,.25],[0,0]].forEach(([d,a],k)=>{ctx.save();ctx.translate(bx+d*20,by-14-k*8);ctx.rotate(a);ctx.fillStyle=k===2?'#7b4b26':'#6a3f1f';ctx.globalAlpha=1-burnt*.6;ctx.fillRect(-W*.11,-9,W*.22,18);ctx.fillStyle='#c48a53';ctx.beginPath();ctx.ellipse(W*.11,0,6,9,0,0,7);ctx.fill();ctx.restore()});
+      ctx.fillStyle='#e8e2d0';ctx.globalAlpha=1-burnt;ctx.fillRect(bx-60,by-6,40,5);ctx.fillRect(bx+20,by-5,34,4);ctx.globalAlpha=1;
+    }else if(type==='B'){
+      ctx.fillStyle='#5b3b0a';ctx.beginPath();ctx.ellipse(bx,by+6,W*.27*s.spread**.5,12,0,0,7);ctx.fill();
+      ctx.fillStyle='rgba(255,190,80,.35)';ctx.beginPath();ctx.ellipse(bx-10,by+4,W*.2*s.spread**.5,5,0,0,7);ctx.fill();
+      ctx.save();ctx.translate(bx-W*.3,by-18);ctx.rotate(-1.2);ctx.fillStyle='#b23a2a';ctx.fillRect(-18,-26,36,52);ctx.fillStyle='#ddd';ctx.fillRect(-6,-34,12,10);ctx.restore();
+    }else if(type==='C'){
+      ctx.fillStyle='#d8d8d8';ctx.fillRect(bx-W*.09,by-30,W*.18,24);ctx.fillStyle='#999';for(let k=0;k<4;k++)ctx.fillRect(bx-W*.08+k*W*.042,by-24,10,12);
+      ctx.strokeStyle='#222';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(bx+W*.09,by-18);ctx.bezierCurveTo(bx+W*.2,by-10,bx+W*.25,by-80,bx+W*.33,by-140);ctx.stroke();
+      ctx.strokeStyle='#c46a2b';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(bx+W*.17,by-28);ctx.lineTo(bx+W*.19,by-40);ctx.stroke();
+      if(s.intensity>.05&&Math.random()<.35){ctx.strokeStyle='#bfe6ff';ctx.lineWidth=2;ctx.beginPath();let x=bx+(Math.random()-.5)*W*.16,y=by-30;ctx.moveTo(x,y);for(let k=0;k<5;k++){x+=(Math.random()-.5)*22;y-=10+Math.random()*12;ctx.lineTo(x,y)}ctx.stroke()}
+    }else{
+      ctx.fillStyle='#555';ctx.fillRect(bx-W*.2,by-20,W*.4,20);ctx.fillStyle='#333';ctx.fillRect(bx-W*.2,by-24,W*.4,6);
+      ctx.fillStyle='#2b2b2b';ctx.beginPath();ctx.ellipse(bx,by-38,W*.14,16,0,0,Math.PI);ctx.lineTo(bx-W*.14,by-38);ctx.fill();
+      ctx.fillRect(bx+W*.13,by-44,W*.12,8);
+      ctx.fillStyle='#c98a1c';ctx.beginPath();ctx.ellipse(bx,by-40,W*.13,7,0,0,7);ctx.fill();
+      if(s.observe){ctx.fillStyle='#fff';ctx.font='16px a시네마L, Gaegu, sans-serif';ctx.fillText(`기름 온도 ${Math.round(s.temp)}℃`,bx-W*.13,by-80-H*.35)}
+    }
+    if(s.observe&&type==='A'){ctx.fillStyle='#fff';ctx.font='16px a시네마L, Gaegu, sans-serif';ctx.fillText('재 쌓임 '+Math.round(Math.min(1,s.ash)*100)+'%',bx-40,H-14)}
+    if(s.observe&&type==='B'){ctx.fillStyle='#fff';ctx.font='16px a시네마L, Gaegu, sans-serif';ctx.fillText('남은 재: 거의 없음',bx-50,H-14)}
+    // 소화기 노즐
+    if(s.tool){ctx.fillStyle=s.tool==='물'?'#8a6a3a':'#d42020';ctx.fillRect(10,H*.5,34,H*.3);ctx.fillStyle='#222';ctx.fillRect(40,H*.5+6,30,8)}
+  }
+  function loop(){
+    s.t++;s.onFrame&&s.onFrame(s);
+    if(s.observe){if(type==='A')s.ash=Math.min(1,s.ash+.0016);if(type==='K')s.temp=Math.min(372,s.temp+(s.temp<300?1.4:.4))}
+    s.spread=Math.max(1,s.spread-.004);
+    scene();
+    const b=base(),n=Math.round(s.intensity*7*s.spread);
+    for(let k=0;k<n;k++)P.push({x:b.x+(Math.random()-.5)*b.w*2*s.spread,y:b.y,vx:(Math.random()-.5)*.6,vy:-(1.4+Math.random()*2.2)*(.7+s.intensity*.5),l:1,r:8+Math.random()*14*(type==='B'?1.2:1)});
+    if(s.intensity>.05&&Math.random()<.4)SM.push({x:b.x+(Math.random()-.5)*b.w,y:b.y-70,vx:(Math.random()-.5)*.5,vy:-.8,l:1,r:16});
+    ctx.globalCompositeOperation='source-over';
+    for(let k=SM.length-1;k>=0;k--){const p=SM[k];p.x+=p.vx;p.y+=p.vy;p.l-=.008;p.r+=.35;if(p.l<=0){SM.splice(k,1);continue}ctx.fillStyle=`rgba(70,65,70,${p.l*.35})`;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill()}
+    ctx.globalCompositeOperation='lighter';
+    for(let k=P.length-1;k>=0;k--){const p=P[k];p.x+=p.vx+Math.sin((p.y+s.t)*.05)*.4;p.y+=p.vy;p.l-=.022;p.r*=.975;if(p.l<=0){P.splice(k,1);continue}
+      const c=p.l>.7?`255,240,170`:p.l>.4?`255,150,40`:`220,60,30`;ctx.fillStyle=`rgba(${c},${p.l*.55})`;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill()}
+    ctx.globalCompositeOperation='source-over';
+    if(s.spraying&&s.tool){const tx=b.x,ty=b.y-10;for(let k=0;k<6;k++){const sx=72,sy=H*.5+10;const a=Math.atan2(ty-sy,tx-sx)+(Math.random()-.5)*.25,v=6+Math.random()*3;SP.push({x:sx,y:sy,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:1,r:s.tool==='물'?3:5+Math.random()*5})}}
+    for(let k=SP.length-1;k>=0;k--){const p=SP[k];p.x+=p.vx;p.y+=p.vy;p.vy+=s.tool==='물'?.15:.03;p.l-=.02;if(s.tool!=='물')p.r+=.3;if(p.l<=0||p.y>H){SP.splice(k,1);continue}ctx.fillStyle=SPC[s.tool]||'#fff';ctx.globalAlpha=p.l*(s.tool==='물'?.9:.5);ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();ctx.globalAlpha=1}
+    if(s.flashT>0){s.flashT--;const a=s.flashT/40;
+      if(s.flash==='shock'){ctx.fillStyle=`rgba(120,190,255,${a*.6})`;ctx.fillRect(0,0,W,H);ctx.strokeStyle=`rgba(255,255,255,${a})`;ctx.lineWidth=4;ctx.beginPath();let x=b.x,y=b.y-20;ctx.moveTo(x,y);while(x>60){x-=20+Math.random()*30;y+=(Math.random()-.5)*40;ctx.lineTo(x,y)}ctx.stroke();
+        ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.font='26px a시네마L, Gaegu, sans-serif';ctx.fillText('감전 위험!',W*.05,40)}
+      else{ctx.fillStyle=`rgba(255,120,30,${a*.55})`;ctx.fillRect(0,0,W,H);ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.font='26px a시네마L, Gaegu, sans-serif';ctx.fillText(s.flash==='flare'?'불길 급격히 확산!':'재발화!',W*.05,40)}}
+    if(s.intensity<=0&&!s.observe){ctx.fillStyle='rgba(255,255,255,.9)';ctx.font='26px a시네마L, Gaegu, sans-serif';ctx.fillText('진압 완료',W*.5,H*.35)}
+    raf=requestAnimationFrame(loop);
+  }
+  s.effect=(kind)=>{s.flash=kind;s.flashT=40;if(kind==='flare'){s.intensity=1;s.spread=2.2}if(kind==='reignite'){s.intensity=.95}};
+  s.stop=()=>{cancelAnimationFrame(raf);ro.disconnect()};
+  loop();sims.push(s);return s;
+}
+
+/* ---------- 시작 화면 ---------- */
+function intro(){
+  app.innerHTML=`<div class="card fx"><div class="hero"><div>
+   <h2>출동! <span class="hl">화재 유형 탐구대</span></h2>
+   <p>불은 타는 물질에 따라 <span class="cA">A급</span>·<span class="cB">B급</span>·<span class="cC">C급</span>·<span class="cK">K급</span>으로 나뉘고, 유형마다 끄는 방법이 다릅니다. 6개의 미션을 해결하며 화재 유형 전문가가 되어 보세요.</p>
+   <div class="mlist">${STAGE_NAMES.map((n,i)=>`<div><em>STAGE ${i+1}</em>${n}</div>`).join('')}</div>
+   <p style="font-size:16px;color:var(--sub)">각 단계는 평가 항목 1개와 연결됩니다. 미충족 단계는 언제든 상단 진행 바에서 <span class="ht">그 단계만 다시 수행</span>할 수 있고, 점수는 즉시 다시 계산됩니다.</p>
+  </div><div>
+   <div class="fig" style="height:260px"><canvas id="introFire"></canvas><span class="lab">연소의 3요소: 가연물 + 산소 + 발화점 이상의 온도</span></div>
+   <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:12px">
+    <label>이름<input type="text" id="iname" value="${student.name}" placeholder="이름"></label>
+    <label>학번<input type="text" id="iid" value="${student.id}" placeholder="예: 20315"></label></div>
+   <button class="btn" id="startBtn" style="width:100%;margin-top:12px">미션 시작</button>
+   <p id="imsg" class="hl" style="font-size:15px;margin:6px 0 0"></p>
+  </div></div></div>
+  <div class="card"><h3 style="margin:0 0 6px;font-size:22px">점수 산출 방식 (화재 유형 탐구 30점)</h3>
+   <table class="st"><tr><th>충족 항목 수</th><th>6개</th><th>5개</th><th>4개</th><th>3개</th><th>2개</th><th>1개 이하</th></tr>
+   <tr><td>점수</td><td>30점</td><td>25점</td><td>20점</td><td>15점</td><td>10점</td><td>5점</td></tr>
+   <tr><td>등급</td><td>A</td><td>B</td><td>C</td><td>D</td><td>F</td><td>F</td></tr></table>
+   <p style="font-size:15px;color:var(--sub);margin:0">각 항목은 <span class="hl">4개 화재 유형 전체</span>를 정확하게 해결해야 충족됩니다. 내용이 단순하거나 일부만 맞으면 미충족으로 처리됩니다.</p></div>`;
+  FireSim($('#introFire'),'A',{intensity:.8});
+  $('#startBtn').onclick=()=>{const n=$('#iname').value.trim(),d=$('#iid').value.trim();if(!n||!d){$('#imsg').textContent='이름과 학번을 입력해야 미션을 시작할 수 있어요.';return}student.name=n;student.id=d;go(nextStage(-1)===6?0:nextStage(-1))};
+}
+
+/* ---------- STAGE 1 ---------- */
+const MAT=[['나무 책상 조각','A'],['신문지·종이 상자','A'],['면 커튼(섬유)','A'],['플라스틱 바구니','A'],['알코올램프의 알코올','B'],['휘발유','B'],['페인트 시너','B'],['전류가 흐르는 멀티탭','C'],['피복이 벗겨진 전기 배선','C'],['작동 중인 전기난로','C'],['튀김용 식용유','K'],['돼지기름(동물성 조리용 기름)','K']];
+const ZDESC={A:'나무·종이·섬유·플라스틱 등',B:'인화성 액체·유류',C:'전류가 흐르는 기기·배선',K:'동식물성 조리용 기름'};
+function st1(){
+  app.innerHTML=head(0,'실험실·가정·주방에서 찾은 가연물 카드 12장을 알맞은 화재 등급 구역으로 <span class="ht">끌어다 놓으세요</span>. (카드를 한 번 눌러 선택한 뒤 구역을 눌러도 됩니다.)','A·B·C·K급 4개 유형 모두 누락 없이, 오분류 없이 100% 정확하게 분류')+
+  `<div class="card" id="stagebody"><div class="zones">${Object.keys(TYPES).map(t=>`<div class="dz" data-zone="${t}"><h3 class="c${t}">${TYPES[t]}</h3><p>${t==='A'?'타고 나면 재가 남는 고체':t==='B'?'불이 잘 붙는 액체':t==='C'?'전기가 원인':'요리할 때 쓰는 것'}</p><div class="dz-body"></div></div>`).join('')}</div>
+  <div class="dz pool" data-zone="pool"><p>가연물 카드</p><div class="dz-body">${shuffle(MAT).map(([n,t])=>`<span class="chip" data-t="${t}" data-n="${n}">${n}</span>`).join('')}</div></div>
+  <div class="row" style="margin-top:14px"><button class="btn" id="sub1">분류 완료</button><span id="m1" class="hl" style="font-size:16px"></span></div><div id="res"></div></div>`;
+  const body=$('#stagebody');
+  enableDrag(body,(chip,z)=>z.querySelector('.dz-body').appendChild(chip));
+  $('#sub1').onclick=()=>{
+    if($$('.pool .chip').length){$('#m1').textContent=`아직 분류하지 않은 카드가 ${$$('.pool .chip').length}장 있어요.`;return}
+    const err=[];$$('.chip',body).forEach(c=>{const z=c.closest('.dz').dataset.zone;if(z===c.dataset.t)c.classList.add('ok');else{c.classList.add('bad');err.push(`'${c.dataset.n}'을(를) ${z}급으로 분류함 → 정답 ${c.dataset.t}급`)}});
+    body.dataset.lock=1;
+    finish(0,err.length===0,err.length===0?'12개의 가연물을 A·B·C·K급 모두 정확하게 분류했습니다.':`12개 중 ${12-err.length}개를 맞혔습니다. 오분류가 있으면 이 항목은 충족되지 않습니다.`,err);
+  };
+}
+
+/* ---------- STAGE 2 ---------- */
+const TAGS=[['연소 후 재가 남는다','A'],['연소 후 재가 거의 남지 않는다','B'],['전류가 흐르는 상태라 감전 위험이 있다','C'],['B급 인화 물질보다 인화점이 높고 매우 고온이어서 일반 화재보다 소화가 어렵다','K'],['기름이 타고 나면 재가 많이 남는다','x'],['물을 뿌리면 가장 빨리 꺼진다','x'],['전원을 차단해도 감전 위험은 그대로 커진다','x']];
+const OBS={A:'나무와 종이가 타면서 회색 재가 점점 쌓입니다. 재는 타고 남은 고체 물질입니다.',B:'바닥에 흐른 유류 표면 전체에서 불꽃이 넓게 일어나고, 다 타도 재가 거의 남지 않습니다.',C:'멀티탭 주변에서 파란 스파크가 튑니다. 전기가 흐르는 동안에는 손이나 물이 닿으면 위험합니다.',K:'기름 온도가 300℃를 넘어 계속 올라갑니다. 식용유는 인화점이 높아 한 번 불이 붙으면 매우 뜨겁습니다.'};
+function st2(){
+  const seen=new Set();let sim=null;
+  app.innerHTML=head(1,'각 화재 유형 버튼을 눌러 <span class="ht">가상 연소 장면을 모두 관찰</span>한 뒤, 오른쪽 특징표에 알맞은 특징 태그를 끌어다 놓으세요. 태그 중에는 <span class="hl">오개념 함정</span>이 숨어 있습니다.','4개 유형의 핵심 특징을 혼동 없이 정확히 연결하고 오개념 태그를 배제')+
+  `<div class="card" id="stagebody"><div class="grid2"><div>
+   <div class="typebtns">${Object.keys(TYPES).map(t=>`<button class="tb" data-t="${t}" data-keep><span class="dot"></span><span class="badge b${t}">${t}</span>${TYPES[t].split(' ')[1].replace(/[()]/g,'')}</button>`).join('')}</div>
+   <div class="fig"><canvas id="cv2"></canvas><span class="lab" id="lab2">유형을 선택하세요</span></div>
+   <div class="note" id="obs" style="margin-top:10px">관찰 기록이 여기에 나타납니다. (관찰 완료 <span id="seenN">0</span>/4)</div>
+  </div><div>
+   <table class="ft">${Object.keys(TYPES).map(t=>`<tr><td style="width:120px"><span class="badge b${t}">${t}</span> <span class="c${t}">${TYPES[t].split(' ')[1].replace(/[()]/g,'')}</span></td><td><div class="dz slot" data-zone="${t}" style="min-height:56px"><div class="dz-body"></div></div></td></tr>`).join('')}</table>
+   <div class="dz pool" data-zone="pool"><p>특징 태그</p><div class="dz-body">${shuffle(TAGS).map(([n,t],k)=>`<span class="chip" data-t="${t}" data-n="${n}">${n}</span>`).join('')}</div></div>
+  </div></div>
+  <div class="row" style="margin-top:14px"><button class="btn" id="sub2">특징표 완성</button><span id="m2" class="hl" style="font-size:16px"></span></div><div id="res"></div></div>`;
+  const body=$('#stagebody');
+  $$('.tb').forEach(b=>b.onclick=()=>{if(body.dataset.lock)return;const t=b.dataset.t;sims.forEach(s=>s.stop());sims=[];sim=FireSim($('#cv2'),t,{observe:true,temp:180});$$('.tb').forEach(x=>x.classList.toggle('on',x===b));$('#lab2').textContent=TYPES[t]+' 관찰 중';
+    setTimeout(()=>{if(cur!==1||$('.tb.on')?.dataset.t!==t)return;seen.add(t);b.classList.add('seen');$('#seenN').textContent=seen.size},2500);
+    $('#obs').innerHTML=`<span class="c${t}">${TYPES[t]}</span> · ${OBS[t]} <span style="color:var(--sub)">(관찰 완료 <span id="seenN">${seen.size}</span>/4)</span>`});
+  enableDrag(body,(chip,z)=>{const tb=z.querySelector('.dz-body');if(z.dataset.zone!=='pool'){const old=tb.querySelector('.chip');if(old&&old!==chip)$('.pool .dz-body').appendChild(old)}tb.appendChild(chip)});
+  $('#sub2').onclick=()=>{
+    if(seen.size<4){$('#m2').textContent=`4개 유형의 연소 장면을 모두 관찰해야 해요. (현재 ${seen.size}/4)`;return}
+    const slots=$$('.slot',body);if(slots.some(s=>!s.querySelector('.chip'))){$('#m2').textContent='4개 칸을 모두 채워 주세요.';return}
+    const err=[];slots.forEach(s=>{const c=s.querySelector('.chip'),t=s.dataset.zone;if(c.dataset.t===t)c.classList.add('ok');else{c.classList.add('bad');err.push(c.dataset.t==='x'?`${t}급에 오개념 태그 '${c.dataset.n}'을(를) 연결함`:`${t}급에 ${c.dataset.t}급의 특징 '${c.dataset.n}'을(를) 연결함`)}});
+    body.dataset.lock=1;
+    finish(1,!err.length,!err.length?'4개 유형의 연소 장면을 모두 관찰하고, 오개념 태그를 배제하여 핵심 특징을 정확히 연결했습니다.':'특징 연결에 혼동이 있습니다. 관찰 장면을 다시 떠올려 보세요.',err);
+  };
+}
+
+/* ---------- STAGE 3 ---------- */
+const CASES=[
+ {t:'A',title:'공원 쓰레기통 화재',txt:'누군가 완전히 끄지 않은 담배꽁초를 쓰레기통에 버렸다. 잠시 뒤 안에 있던 종이컵과 낙엽에서 연기가 나더니 불길이 솟았다.',c:0},
+ {t:'B',title:'석유난로 전도 화재',txt:'거실의 석유난로가 넘어지면서 등유가 바닥으로 새어 나왔다. 퍼진 기름과 증기에 난로의 불꽃이 닿자 순식간에 불이 바닥에 번졌다.',c:1},
+ {t:'C',title:'노후 멀티탭 화재',txt:'20년 된 집에서 멀티탭 하나에 전열기구 여러 개를 꽂아 썼다. 피복이 갈라진 전선에서 "탁" 소리와 함께 불꽃이 튀며 연기가 났다.',c:2},
+ {t:'K',title:'튀김기 기름 화재',txt:'튀김 요리를 하던 중 기름을 불에 올려 둔 채 자리를 비웠다. 돌아와 보니 냄비 속 식용유에서 불길이 치솟고 있었다.',c:3}];
+const CAUSE=['불씨(담뱃불)를 부주의하게 취급하여 종이·낙엽 같은 일반 가연물에 옮겨 붙음','새어 나온 유류와 그 증기에 점화원(불꽃)이 닿음','오래된 배선의 피복이 손상되어 합선·과부하로 열과 스파크가 발생함','식용유가 과열되어 발화점 이상으로 온도가 올라감','공기 중 산소가 갑자기 늘어나 저절로 불이 붙음','차가운 물이 닿으면서 화학 반응이 일어남'];
+function st3(){
+  const ans=CASES.map(()=>({g:null,c:null}));
+  app.innerHTML=head(2,'일상에서 일어난 화재 사건 파일 4건을 읽고, <span class="ht">화재 등급</span>을 판별한 뒤 <span class="ht">핵심 발화 원인</span>을 고르세요.','4개 사례를 모두 올바른 등급과 연결하고, 각 사례의 발생 원인까지 구체적으로 매칭')+
+  `<div class="card" id="stagebody"><div class="grid2">${shuffle(CASES.map((c,i)=>({...c,i}))).map(c=>`<div class="case" data-i="${c.i}"><h3>사건 파일 · ${c.title}</h3><p style="margin:0 0 8px;font-size:16px">${c.txt}</p>
+   <div style="font-size:15px;color:var(--sub)">① 화재 등급</div><div class="row" style="gap:6px;margin:4px 0 8px">${'ABCK'.split('').map(g=>`<button class="gbtn g${g}" data-g="${g}">${g}급</button>`).join('')}</div>
+   <div style="font-size:15px;color:var(--sub)">② 핵심 발화 원인</div>${shuffle(CAUSE.map((t,k)=>({t,k}))).map(o=>`<button class="opt" data-c="${o.k}">${o.t}</button>`).join('')}</div>`).join('')}</div>
+  <div class="row"><button class="btn" id="sub3">진단 제출</button><span id="m3" class="hl" style="font-size:16px"></span></div><div id="res"></div></div>`;
+  $$('.case').forEach(box=>{const i=+box.dataset.i;
+    box.addEventListener('click',e=>{const g=e.target.closest('.gbtn'),o=e.target.closest('.opt');
+      if(g){ans[i].g=g.dataset.g;$$('.gbtn',box).forEach(x=>x.classList.toggle('on',x===g))}
+      if(o){ans[i].c=+o.dataset.c;$$('.opt',box).forEach(x=>x.classList.toggle('on',x===o))}})});
+  $('#sub3').onclick=()=>{
+    if(ans.some(a=>!a.g||a.c===null)){$('#m3').textContent='4건 모두 등급과 원인을 선택해 주세요.';return}
+    const err=[];CASES.forEach((c,i)=>{const box=$(`.case[data-i="${i}"]`);
+      const gb=$(`.gbtn.on`,box),ob=$(`.opt.on`,box);
+      if(ans[i].g!==c.t){err.push(`'${c.title}'을(를) ${ans[i].g}급으로 판별함 → 정답 ${c.t}급`);gb.style.outline='3px solid var(--no)'}
+      if(ans[i].c!==c.c){err.push(`'${c.title}'의 원인을 잘못 고름 → 정답: ${CAUSE[c.c]}`);ob.classList.add('wrong')}else ob.classList.add('good')});
+    finish(2,!err.length,!err.length?'4건의 실제 사례를 모두 올바른 등급과 연결하고, 발화 원인까지 정확히 진단했습니다.':`등급 판별 또는 원인 매칭에서 ${err.length}건의 오류가 있습니다.`,err);
+  };
+}
+
+/* ---------- STAGE 4 ---------- */
+const TOOLS=[['물','물 양동이','#4fb3ff'],['포말','포말(폼) 소화기','#f2f2f2'],['이산화탄소','이산화탄소 소화기','#9fb7c9'],['분말','분말(ABC) 소화기','#f4a6c4'],['K급','K급 전용 소화기','#b79cf0']];
+const REACT={A:{물:'ok',포말:'ok',분말:'ok',K급:'ok',이산화탄소:'re'},B:{포말:'ok',이산화탄소:'ok',분말:'ok',물:'flare',K급:'re'},C:{이산화탄소:'ok',분말:'ok',물:'shock',포말:'shock',K급:'shock'},K:{K급:'ok',물:'flare',포말:'re',이산화탄소:'re',분말:'re'}};
+const MSG={
+ 'A-re':'이산화탄소가 표면의 산소만 잠시 막았지만, 나무 속 불씨가 식지 않아 다시 타올랐습니다. 일반 화재는 깊숙이 냉각해야 합니다.',
+ 'B-flare':'물이 기름보다 무거워 아래로 가라앉고, 기름이 물 위로 떠서 튀며 불길이 넓게 번졌습니다.',
+ 'B-re':'K급 약제는 유류 화재용이 아니어서 유증기에 다시 불이 붙었습니다.',
+ 'C-shock':'물(수분)이 포함된 약제는 전기가 통합니다. 전류가 약제를 타고 흘러 감전 위험이 발생했습니다.',
+ 'K-flare':'고온의 기름에 물이 닿자 물이 순간적으로 끓어 기화하면서 기름이 사방으로 튀어 불길이 폭발적으로 커졌습니다.',
+ 'K-re':'불꽃은 잠시 줄었지만 기름 온도가 여전히 발화점 이상이어서 다시 불이 붙었습니다.'};
+function st4(){
+  const st={A:{done:false,err:[]},B:{done:false,err:[]},C:{done:false,err:[]},K:{done:false,err:[]}};const usedTools={A:[],B:[],C:[],K:[]};
+  let curT='A',tool=null,sim=null;
+  app.innerHTML=head(3,'4곳의 화재 현장에서 소화제를 고른 뒤 <span class="ht">[분사] 버튼을 누르고 있으면</span> 직접 진압합니다. 잘못된 소화제를 쓰면 실제처럼 위험한 반응이 나타납니다.','4개 유형의 화재를 모두 위험 반응(감전·확산·재발화) 없이 적합한 소화제로 진압')+
+  `<div class="card" id="stagebody"><div class="typebtns" id="tabs4"></div><div class="grid2"><div>
+   <div class="fig" style="height:360px"><canvas id="cv4"></canvas><span class="lab" id="lab4"></span></div>
+   <div style="margin-top:8px;font-size:15px">불의 세기</div><div class="meter"><div id="mtr"></div></div>
+  </div><div>
+   <div style="font-size:16px;color:var(--sub)">소화제 선택</div>
+   <div class="tools">${TOOLS.map(([k,n,c])=>`<button class="tool" data-k="${k}" data-keep><svg width="28" height="40" viewBox="0 0 28 40"><rect x="6" y="8" width="16" height="30" rx="5" fill="${c}" stroke="#555"/><rect x="10" y="2" width="8" height="7" fill="#444"/>${k==='물'?'':'<path d="M18 5h8" stroke="#444" stroke-width="3"/>'}</svg>${n}</button>`).join('')}</div>
+   <button class="btn teal spray" id="spray" data-keep>누르고 있으면 분사</button>
+   <div class="log" id="log4" style="margin-top:10px"><p style="color:var(--sub)">진압 기록</p></div>
+  </div></div>
+  <div class="row" style="margin-top:14px"><button class="btn" id="sub4" disabled>진압 실험 완료</button><span id="m4" style="font-size:16px;color:var(--sub)">4곳을 모두 진압하면 완료할 수 있어요.</span></div><div id="res"></div></div>`;
+  const log=(t,cls='')=>{$('#log4').insertAdjacentHTML('beforeend',`<p class="${cls}">${t}</p>`);$('#log4').scrollTop=1e6};
+  function tabs(){$('#tabs4').innerHTML=Object.keys(TYPES).map(t=>`<button class="tb ${t===curT?'on':''} ${st[t].done?'seen':''}" data-t="${t}" data-keep><span class="dot" style="${st[t].err.length&&st[t].done?'background:var(--yel)':''}"></span><span class="badge b${t}">${t}</span>${TYPES[t].split(' ')[1].replace(/[()]/g,'')}</button>`).join('')}
+  function load(t){curT=t;sims.forEach(s=>s.stop());sims=[];sim=FireSim($('#cv4'),t,{intensity:st[t].done?0:1});sim.tool=tool;sim.onFrame=frame;$('#lab4').textContent=TYPES[t]+' 현장';tabs()}
+  function frame(s){
+    const m=$('#mtr');if(!m)return;m.style.width=Math.max(0,s.intensity*100)+'%';
+    if(!s.spraying||st[curT].done||!tool)return;
+    s.sprayT=(s.sprayT||0)+1;const r=REACT[curT][tool];
+    if(r==='ok'){s.intensity=Math.max(0,s.intensity-.006);if(s.intensity<=0){st[curT].done=true;stop();log(`<span class="c${curT}">${curT}급</span>: ${TOOLS.find(x=>x[0]===tool)[1]}(으)로 진압 성공`,'ht');tabs();check()}}
+    else if(r==='re'){s.intensity=Math.max(.12,s.intensity-.006);if(s.intensity<=.12){s.effect('reignite');stop();danger('re')}}
+    else if(s.sprayT>22){s.effect(r);stop();danger(r)}
+  }
+  function danger(r){const m=MSG[curT+'-'+r];st[curT].err.push(`${curT}급 화재에 ${TOOLS.find(x=>x[0]===tool)[1]} 사용 → ${r==='shock'?'감전':r==='flare'?'불길 확산':'재발화'}`);log(`<span class="hl">${curT}급 위험 반응</span>: ${m}`)}
+  function stop(){if(sim){sim.spraying=false;sim.sprayT=0}$('#spray').classList.remove('act')}
+  function check(){const all=Object.values(st).every(x=>x.done);$('#sub4').disabled=!all;if(all)$('#m4').textContent='모든 현장 진압 완료! 결과를 제출하세요.';else{const nx=Object.keys(st).find(k=>!st[k].done);setTimeout(()=>{if(cur===3&&!st[curT].done)return;if(cur===3)load(nx)},1200)}}
+  $('#tabs4').onclick=e=>{const b=e.target.closest('.tb');if(b&&!$('#stagebody').dataset.lock){stop();load(b.dataset.t)}};
+  $$('.tool').forEach(b=>b.onclick=()=>{tool=b.dataset.k;if(sim)sim.tool=tool;$$('.tool').forEach(x=>x.classList.toggle('on',x===b))});
+  const sp=$('#spray');
+  sp.addEventListener('pointerdown',e=>{e.preventDefault();if($('#stagebody').dataset.lock)return;if(!tool){log('먼저 소화제를 선택하세요.','hl');return}if(st[curT].done){log('이미 진압한 현장입니다. 다른 현장을 선택하세요.');return}
+    if(!usedTools[curT].includes(tool))usedTools[curT].push(tool);sim.spraying=true;sim.sprayT=0;sp.classList.add('act')});
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>sp.addEventListener(ev,stop));
+  load('A');
+  $('#sub4').onclick=()=>{
+    const err=Object.values(st).flatMap(x=>x.err);
+    used4={};Object.keys(st).forEach(t=>used4[t]=usedTools[t].filter(k=>REACT[t][k]==='ok').map(k=>TOOLS.find(x=>x[0]===k)[1]).join(', '));
+    $('#stagebody').dataset.lock=1;$$('.tool,.tb,#spray').forEach(b=>b.disabled=true);
+    finish(3,!err.length,!err.length?'4개 현장을 모두 위험 반응 없이 적합한 소화제로 진압했습니다.':`진압은 마쳤지만 위험 반응이 ${err.length}회 발생했습니다. 실제 현장이었다면 큰 사고로 이어졌을 수 있습니다.`,err);
+  };
+}
+
+/* ---------- STAGE 5 ---------- */
+const AG=['물','포말·이산화탄소','비전도성 약제(이산화탄소·분말·가스식)','K급 전용 소화약제'];
+const PR=['냉각 소화: 온도를 발화점 아래로 낮춤','질식 소화: 산소 공급을 차단함','비누화 작용으로 기름 표면에 막을 만들어 산소 차단 + 냉각','제거 소화: 타는 물질(가연물)을 없앰'];
+const RS=['겉만 덮어 산소를 막으면 속 불씨가 남아 재발화할 수 있어, 물로 깊숙이 식혀야 함','기름이 물보다 밀도가 작아 물 위에 떠서 퍼지므로 물을 쓰면 불이 번짐','물은 전기가 통해 감전 위험이 있으므로 전기가 통하지 않는 약제를 써야 함','고온의 기름에 물이 닿으면 순간 기화하며 기름이 튀어 폭발적으로 번지고, 일반 약제로는 온도가 높아 재발화함','이산화탄소는 불에 잘 타는 기체이므로 화재를 키울 수 있음'];
+const KEY5={A:{a:0,p:[0],r:0},B:{a:1,p:[1],r:1},C:{a:2,p:[1,0],r:2},K:{a:3,p:[2],r:3}};
+const TRI={0:['temp'],1:['oxy'],2:['oxy','temp'],3:['fuel']};
+function st5(){
+  app.innerHTML=head(4,'4단계에서 사용한 소화제가 <span class="ht">연소의 3요소</span> 중 무엇을 차단하는지 연결하세요. 소화 원리를 고르면 오른쪽 연소 삼각형에서 끊어지는 변이 표시됩니다.','‘화재 유형–소화제–소화 원리’의 연결과 잘못된 소화제를 쓰면 안 되는 이유를 4개 유형 모두 정확히 완성')+
+  `<div class="card" id="stagebody"><div class="grid2 g5"><div>
+   <div class="chain head"><div>화재 유형</div><div>① 소화제</div><div>② 소화 원리</div><div>③ 다른 소화제를 쓰면 안 되는 이유</div></div>
+   ${Object.keys(TYPES).map(t=>`<div class="chain" data-t="${t}"><div><span class="badge b${t}">${t}</span> <span class="c${t}" style="font-size:16px">${TYPES[t].split(' ')[1].replace(/[()]/g,'')}</span>${used4[t]?`<div style="font-size:13px;color:var(--sub)">4단계 사용: ${used4[t]}</div>`:''}</div>
+    <select data-k="a"><option value="">소화제 선택</option>${AG.map((x,k)=>`<option value="${k}">${x}</option>`).join('')}</select>
+    <select data-k="p"><option value="">원리 선택</option>${PR.map((x,k)=>`<option value="${k}">${x}</option>`).join('')}</select>
+    <select data-k="r"><option value="">이유 선택</option>${shuffle(RS.map((x,k)=>({x,k}))).map(o=>`<option value="${o.k}">${o.x}</option>`).join('')}</select></div>`).join('')}
+  </div><div>
+   <svg class="tri" viewBox="0 0 300 270" style="width:100%;max-width:340px;display:block;margin:auto">
+    <line id="sFuel" x1="40" y1="230" x2="260" y2="230" stroke="#8a5a2b" stroke-width="12" stroke-linecap="round"/>
+    <line id="sOxy" x1="40" y1="230" x2="150" y2="40" stroke="#1f6fd1" stroke-width="12" stroke-linecap="round"/>
+    <line id="sTemp" x1="260" y1="230" x2="150" y2="40" stroke="#d7263d" stroke-width="12" stroke-linecap="round"/>
+    <path d="M150 190c-26-20-14-48 0-66 4 18 26 22 22 46-2 14-12 20-22 20z" fill="#ff8a2a" id="triFlame"/>
+    <text x="150" y="262" text-anchor="middle" font-size="19" fill="#8a5a2b">가연물</text>
+    <text x="62" y="124" text-anchor="middle" font-size="19" fill="#1f6fd1">산소</text>
+    <text x="246" y="118" text-anchor="middle" font-size="18" fill="#d7263d">발화점 이상</text><text x="246" y="140" text-anchor="middle" font-size="18" fill="#d7263d">온도</text>
+   </svg>
+   <div class="note" id="triNote">소화 원리를 선택해 보세요. 3요소 중 하나라도 없애면 불은 꺼집니다.</div>
+  </div></div>
+  <div class="row" style="margin-top:14px"><button class="btn" id="sub5">원리 연결 완료</button><span id="m5" class="hl" style="font-size:16px"></span></div><div id="res"></div></div>`;
+  const body=$('#stagebody');
+  body.addEventListener('change',e=>{const s=e.target;if(s.dataset.k!=='p'||s.value==='')return;const cut=TRI[s.value];
+    [['sFuel','fuel'],['sOxy','oxy'],['sTemp','temp']].forEach(([id,k])=>{const l=$('#'+id);l.style.strokeDasharray=cut.includes(k)?'14 14':'';l.style.opacity=cut.includes(k)?.35:1});
+    $('#triFlame').style.opacity=.25;setTimeout(()=>{const f=$('#triFlame');if(f)f.style.opacity=1},900);
+    $('#triNote').innerHTML=`${PR[s.value]} → 끊어지는 요소: <span class="hl">${cut.map(k=>({fuel:'가연물',oxy:'산소',temp:'발화점 이상의 온도'})[k]).join(' + ')}</span>`});
+  $('#sub5').onclick=()=>{
+    const sels=$$('select',body);if(sels.some(s=>s.value==='')){$('#m5').textContent='12칸을 모두 선택해 주세요.';return}
+    const err=[];$$('.chain[data-t]',body).forEach(row=>{const t=row.dataset.t,k=KEY5[t];
+      const [a,p,r]=['a','p','r'].map(x=>$(`select[data-k="${x}"]`,row));
+      const okA=+a.value===k.a,okP=k.p.includes(+p.value),okR=+r.value===k.r;
+      a.classList.add(okA?'good':'wrong');p.classList.add(okP?'good':'wrong');r.classList.add(okR?'good':'wrong');
+      if(!okA)err.push(`${t}급: 소화제 연결 오류 (정답: ${AG[k.a]})`);if(!okP)err.push(`${t}급: 소화 원리 연결 오류 (정답: ${PR[k.p[0]]})`);if(!okR)err.push(`${t}급: 다른 소화제 금지 이유 오류`)});
+    finish(4,!err.length,!err.length?'4개 유형 모두 소화제–소화 원리–금지 이유의 3단 연결을 과학적으로 정확하게 완성했습니다.':`12개 연결 중 ${12-err.length}개가 맞았습니다. 단순 명칭이 아니라 연소 조건과의 관계를 다시 생각해 보세요.`,err);
+  };
+}
+
+/* ---------- STAGE 6 ---------- */
+const STEPS=[
+ {sc:'lab',q:'과학실 실험 중 알코올램프가 넘어져 책상 위 종이에 불이 붙었다. 가장 먼저 할 일은?',o:[['화재 경보기 버튼을 누르고 "불이야!"라고 크게 외쳐 주변에 알린다',1],['혼날까 봐 아무에게도 알리지 않고 혼자 조용히 끈다',0,'주변 사람이 늦게 알게 되어 대피가 늦어집니다. 먼저 알리는 것이 최우선입니다.'],['휴대전화로 사진부터 찍어 친구에게 보낸다',0,'초기 대응 시간을 허비하면 불은 몇 초 만에 커집니다.']]},
+ {sc:'lab',q:'119에 신고할 때 바른 방법은?',o:[['"불났어요!"라고만 말하고 바로 끊는다',0,'위치와 상황을 모르면 소방대가 빨리 도착할 수 없습니다.'],['학교 주소, 건물과 층, 불이 난 위치와 타는 물질을 침착하게 말한다',1],['불이 완전히 꺼진 뒤에 신고한다',0,'신고는 불이 났을 때 바로 해야 합니다.']]},
+ {sc:'ext',type:'order',q:'불이 아직 작아 소화기로 초기 진압이 가능하다고 판단했다. 소화기 사용 4단계를 순서대로 누르세요.',o:['안전핀을 뽑는다','노즐(호스)을 불 쪽으로 향하게 잡는다','손잡이를 힘껏 움켜쥔다','바람을 등지고 빗자루로 쓸듯이 골고루 뿌린다']},
+ {sc:'big',q:'소화기를 다 썼는데 불길이 천장까지 번지기 시작했다. 어떻게 할까?',o:[['소화기를 하나 더 가져와 끝까지 진압한다',0,'불길이 천장에 닿으면 초기 진압 단계를 넘은 것입니다. 무리한 진압은 고립될 수 있습니다.'],['창문을 모두 활짝 열어 연기를 빼낸다',0,'산소가 많이 들어가 불이 더 커집니다.'],['진압을 멈추고 즉시 대피한다',1]]},
+ {sc:'elec',q:'대피하던 중 복도 옆 준비실의 멀티탭에서 불꽃과 연기가 보인다. (C급)',o:[['가까이 있는 물 양동이로 물을 붓는다',0,'물은 전기가 통해 감전될 수 있습니다.'],['맨손으로 플러그를 잡아 뽑는다',0,'불타는 전기 기구를 직접 만지면 감전·화상 위험이 큽니다.'],['안전하면 차단기를 내려 전원을 끊고, 이산화탄소·분말 소화기를 쓴다',1]]},
+ {sc:'kit',q:'급식실 튀김솥의 기름에 불이 붙었다는 소리가 들린다. (K급)',o:[['K급 소화기를 사용하고 가스 밸브를 잠근다. 물은 절대 붓지 않는다',1],['물을 부어 기름을 식힌다',0,'고온의 기름에 물이 닿으면 폭발하듯 불이 튀어 번집니다.'],['솥을 들어 밖으로 옮긴다',0,'뜨거운 기름이 쏟아져 화상과 화재 확산이 일어납니다.']]},
+ {sc:'door',q:'대피로의 닫힌 문 앞에 도착했다. 문 너머에 불이 있을지 모른다.',o:[['곧바로 문을 활짝 연다',0,'불이 있는 방에 산소가 갑자기 들어가면 불길이 역류하듯 터져 나옵니다(불길 역류 현상).'],['손등으로 금속 손잡이의 온도를 확인하고, 뜨거우면 열지 않고 다른 길로 간다',1],['문을 발로 차서 부순다',0,'문이 열리며 산소가 급히 들어가 불길 역류 위험이 있고 부상 위험도 큽니다.']]},
+ {sc:'smoke',q:'복도에 연기가 가득 차 있다. 어떻게 이동할까?',o:[['엘리베이터를 타고 빠르게 내려간다',0,'화재 시 엘리베이터는 정전으로 멈추거나 연기가 차는 통로가 됩니다.'],['젖은 수건으로 코와 입을 막고 자세를 낮춰 벽을 짚으며 계단으로 대피한다',1],['숨을 참고 똑바로 서서 뛰어간다',0,'뜨거운 연기는 위로 모입니다. 서 있으면 유독가스를 마시게 됩니다.']]},
+ {sc:'out',q:'운동장으로 대피했다. 교실에 가방을 두고 왔다.',o:[['지정된 장소에 모여 인원을 확인하고, 건물에는 다시 들어가지 않는다',1],['금방 다녀오면 되니 가방을 가지러 간다',0,'대피 후 다시 들어가는 것은 매우 위험합니다.']]}];
+function sceneSVG(sc,k){
+  const smoke=Math.min(.75,k*.09);
+  const fig={lab:`<rect x="250" y="130" width="150" height="16" fill="#8a5a2b"/><path d="M320 128c-12-12-6-30 4-40 2 14 18 16 14 32-2 6-10 8-18 8z" fill="#ff7a1a"/>`,
+   ext:`<rect x="200" y="90" width="40" height="80" rx="10" fill="#d7263d"/><rect x="210" y="76" width="20" height="16" fill="#333"/><path d="M240 84h40l30 20" stroke="#333" stroke-width="6" fill="none"/><path d="M360 160c-18-18-8-40 6-52 2 18 24 22 18 42-2 8-12 10-24 10z" fill="#ff7a1a"/>`,
+   big:`<path d="M300 170c-50-40-30-110 10-150 6 46 70 60 52 120-6 22-34 30-62 30z" fill="#ff6a1a"/><path d="M310 170c-20-20-10-50 6-66 4 24 30 30 24 50-2 10-14 16-30 16z" fill="#ffd166"/>`,
+   elec:`<rect x="260" y="140" width="110" height="22" fill="#ddd"/><path d="M300 138l-12-24 14 4-6-24" stroke="#5ab0ff" stroke-width="4" fill="none"/><path d="M340 136c-10-10-4-24 4-30 2 10 14 12 10 24z" fill="#ff7a1a"/>`,
+   kit:`<rect x="240" y="140" width="160" height="30" fill="#555"/><path d="M260 140h120v-30h-120z" fill="#999"/><path d="M320 108c-20-20-8-50 8-62 4 22 30 26 22 48-4 10-16 14-30 14z" fill="#ff7a1a"/>`,
+   door:`<rect x="260" y="40" width="100" height="150" fill="#8d6e63"/><circle cx="345" cy="120" r="7" fill="#ffd166"/><rect x="262" y="186" width="96" height="6" fill="#ff7a1a" opacity=".8"/>`,
+   smoke:`<rect x="0" y="0" width="600" height="220" fill="#555" opacity=".35"/><path d="M420 190V60h60v130" fill="none" stroke="#2e7d32" stroke-width="6"/><text x="430" y="50" font-size="20" fill="#2e7d32">비상구</text>`,
+   out:`<rect x="0" y="170" width="600" height="50" fill="#9ccc65"/><rect x="380" y="40" width="160" height="130" fill="#bcaaa4"/><path d="M440 40c-10-20 10-30 20-40" stroke="#777" stroke-width="10" fill="none" opacity=".6"/>`}[sc];
+  return `<svg viewBox="0 0 600 220" preserveAspectRatio="xMidYMid slice"><rect width="600" height="220" fill="#eceff1"/><rect y="190" width="600" height="30" fill="#b0a196"/>${fig}
+  <circle cx="110" cy="120" r="18" fill="#ffcc80"/><rect x="94" y="140" width="32" height="50" rx="10" fill="#1f6fd1"/>
+  <rect x="0" y="0" width="600" height="${60+k*12}" fill="#3b3b3b" opacity="${smoke}"/></svg>`;
+}
+function st6(){
+  let k=0;const err=[];
+  app.innerHTML=head(5,'화재 발견부터 대피 완료까지, 상황마다 <span class="ht">가장 안전한 행동</span>을 선택하세요. 잘못된 선택은 그 자리에서 결과를 보여 주고 <span class="hl">치명적 오류</span>로 기록됩니다.','초동 대처(경보·신고·소화기 사용법 4단계), 대피 요령, 유형별 주의사항(불길 역류·감전·기름 확산)을 치명적 오류 없이 완수')+
+  `<div class="card" id="stagebody"><div class="row" style="justify-content:space-between"><span class="tag" id="prog6"></span><span style="font-size:15px;color:var(--sub)">치명적 오류 <span id="errN" class="hl">0</span>회</span></div>
+   <div class="scene" id="scene6" style="margin:10px 0"></div><div id="q6"></div><div id="res"></div></div>`;
+  function show(){
+    if(k>=STEPS.length){const pass=!err.length;finish(5,pass,pass?'화재 인지부터 경보·신고, 소화기 사용, 진압 중단 판단, 유형별 주의사항, 대피까지 모든 상황을 치명적 오류 없이 완수했습니다.':`시나리오는 끝까지 마쳤지만 치명적 오류가 ${err.length}회 있었습니다.`,err);return}
+    const s=STEPS[k];$('#prog6').textContent=`상황 ${k+1} / ${STEPS.length}`;$('#scene6').innerHTML=sceneSVG(s.sc,k);
+    if(s.type==='order'){let picked=[],first=true;const draw=()=>{$('#q6').innerHTML=`<p style="font-size:19px;margin:6px 0">${s.q}</p><div class="ordbox">${[0,1,2,3].map(i=>`<div class="oslot"><em>${i+1}단계</em><br>${picked[i]!==undefined?s.o[picked[i]]:''}</div>`).join('')}</div>
+      <div>${order.map(i=>`<button class="opt" data-o="${i}" ${picked.includes(i)?'disabled style="opacity:.4"':''}>${s.o[i]}</button>`).join('')}</div><div class="row"><button class="btn ghost" id="ordReset" data-keep>다시 놓기</button><button class="btn" id="ordOk" data-keep ${picked.length<4?'disabled':''}>순서 확인</button></div><p id="ordMsg" class="hl"></p>`;
+       $$('#q6 .opt').forEach(b=>b.onclick=()=>{picked.push(+b.dataset.o);draw()});$('#ordReset').onclick=()=>{picked=[];draw()};
+       $('#ordOk').onclick=()=>{if(picked.every((v,i)=>v===i)){k++;show()}else{if(first){err.push('소화기 사용 4단계 순서를 잘못 배열함');$('#errN').textContent=err.length;first=false}picked=[];draw();$('#ordMsg').textContent='순서가 맞지 않아요. 안전핀을 뽑지 않으면 손잡이가 눌리지 않고, 노즐을 먼저 겨눠야 약제가 불에 닿습니다. 다시 배열하세요.'}}};
+      const order=shuffle([0,1,2,3]);draw();return}
+    $('#q6').innerHTML=`<p style="font-size:19px;margin:6px 0">${s.q}</p>${shuffle(s.o.map((o,i)=>({o,i}))).map(({o,i})=>`<button class="opt" data-i="${i}">${o[0]}</button>`).join('')}<p id="fb6"></p>`;
+    let wrongHere=false;
+    $$('#q6 .opt').forEach(b=>b.onclick=()=>{const o=s.o[+b.dataset.i];
+      if(o[1]){b.classList.add('good');$('#fb6').innerHTML=`<span class="ht">안전한 선택입니다.</span>`;$$('#q6 .opt').forEach(x=>x.disabled=true);setTimeout(()=>{k++;show()},900)}
+      else{b.classList.add('wrong');b.disabled=true;if(!wrongHere){err.push(`상황 ${k+1}: "${o[0]}" 선택 — ${o[2]}`);wrongHere=true}$('#errN').textContent=err.length;$('#fb6').innerHTML=`<span class="hl">위험!</span> ${o[2]} 안전한 행동을 다시 고르세요.`;
+        $('#scene6').animate([{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'none'}],{duration:300})}});
+  }
+  show();
+}
+const STAGES=[st1,st2,st3,st4,st5,st6];
+
+/* ---------- 미션 결과 ---------- */
+const PASSFB=[
+ '원인 물질 분류: 나무·종이·섬유 같은 일반 가연물, 알코올·휘발유 같은 유류, 전류가 흐르는 기기, 조리용 기름을 정확히 구별하여 화재 유형을 나누는 기준을 잘 이해했습니다.',
+ '특징 분석: 연소 장면을 모두 관찰하고 재의 유무, 감전 위험, 고온의 식용유라는 핵심 특징을 오개념에 흔들리지 않고 연결했습니다.',
+ '사례 진단: 일상의 화재 사건에서 타는 물질과 점화원을 찾아 등급과 발화 원인을 구체적으로 설명할 수 있습니다.',
+ '소화제 선택: 위험 반응 없이 각 화재에 맞는 소화제를 골라 진압하여, 잘못된 소화제가 감전·확산·재발화를 일으킨다는 점을 잘 알고 있습니다.',
+ '소화 원리: 소화제가 연소의 3요소 중 무엇을 차단하는지(냉각·질식·비누화) 과학적으로 연결하고 다른 소화제를 쓰면 안 되는 이유까지 설명했습니다.',
+ '대처·대피: 경보와 신고, 소화기 4단계, 진압 중단 판단, 불길 역류·감전·기름 확산 주의, 낮은 자세로 계단 대피까지 안전하게 해냈습니다.'];
+const FAILFB=[
+ '원인 물질 분류가 아직 정확하지 않습니다. 고체(재가 남음)인지, 불이 잘 붙는 액체인지, 전기가 흐르는지, 요리용 기름인지를 차례로 따져 보세요.',
+ '특징 연결에 혼동이 있습니다. 특히 "기름은 타고 나서 재가 많이 남는다", "물이면 다 꺼진다" 같은 오개념에 주의하며 연소 장면을 다시 관찰해 보세요.',
+ '사례 진단에서 등급 또는 원인 매칭이 틀렸습니다. 사건 속에서 무엇이 탔는지(가연물)와 무엇이 불을 붙였는지(점화원)를 분리해서 읽어 보세요.',
+ '소화제 선택 실험에서 위험 반응이 있었습니다. 전기 화재에는 물이 섞인 약제를, 유류·주방 화재에는 물을 쓰면 안 되는 이유를 떠올려 다시 진압해 보세요.',
+ '소화 원리 연결이 불완전합니다. 냉각은 온도를, 질식은 산소를 차단한다는 점과 K급 약제의 비누화 작용을 연소 삼각형으로 확인해 보세요.',
+ '대처·대피 시나리오에서 치명적 오류가 있었습니다. 문 열기 전 손잡이 온도 확인, 전기 화재의 전원 차단, 기름 화재의 물 금지, 엘리베이터 금지를 다시 점검하세요.'];
+function report(){
+  const n=nPass(),sc=scoreOf(n),gr=gradeOf(sc),all=S.every(s=>s.attempts>0);
+  const totalRetry=S.reduce((a,s)=>a+Math.max(0,s.attempts-1),0);
+  const failed=S.map((s,i)=>i).filter(i=>S[i].status!==true);
+  const nextGr={F:'D',D:'C',C:'B',B:'A'}[gr];
+  const fbLines=S.map((s,i)=>{if(!s.attempts)return `<p><span class="hy">STAGE ${i+1}</span> 아직 수행하지 않았습니다.</p>`;
+    const tr=s.attempts>1?` (${s.attempts}번 시도${s.status?' 끝에 스스로 보완하여 충족':''})`:'';
+    return `<p><span class="${s.status?'ht':'hl'}">STAGE ${i+1}${tr}</span> ${s.status?PASSFB[i]:FAILFB[i]}${!s.status&&s.errors.length?` <span style="color:var(--sub)">예: ${s.errors[0]}</span>`:''}</p>`}).join('');
+  const summary=!anyTried()?'아직 수행한 단계가 없습니다.':n===6?`${student.name} 학생은 6개 평가 항목을 모두 충족했습니다. ${totalRetry?`처음에 부족했던 단계를 ${totalRetry}회 재도전하여 스스로 보완한 점이 특히 훌륭합니다. `:''}화재 유형의 분류부터 소화 원리, 실제 대피 행동까지 하나로 연결해 설명할 수 있는 수준입니다.`
+   :`${student.name} 학생은 6개 항목 중 ${n}개를 충족했습니다. ${S.filter(s=>s.status).length?'충족한 단계에서는 화재 유형에 대한 개념이 잘 잡혀 있습니다. ':''}미충족 단계(${failed.map(i=>i+1).join(', ')}단계)를 보완하면 화재 유형을 과학적으로 이해하고 안전하게 대응하는 능력이 완성됩니다.`;
+  app.innerHTML=`<div class="report fx" id="rep"><div class="rhead"><div><h2>${all&&n===6?'미션 성공!':all?'미션 결과 리포트':'중간 결과 리포트'}</h2><div style="color:var(--sub)">화재 유형 탐구 (30점) · ${new Date().toLocaleDateString('ko-KR')}</div></div>
+   <div class="row"><img src="${$('.brand img').src}" width="56" height="56" alt="EARTH LJY 로고"><div style="font-size:15px">EARTHLJY 안좌고 지영T<br><span class="ht">earthljy@ai.jne.kr</span></div></div></div>
+   <div class="row" style="justify-content:space-between"><div style="font-size:19px">이름 <span class="ht">${student.name}</span> · 학번 <span class="ht">${student.id}</span></div><div>총 재수행 <span class="hl">${totalRetry}</span>회</div></div>
+   <div class="gradebox"><div class="gradebig">${gr}</div><div><div style="font-size:34px;line-height:1.1"><span class="hl">${sc}</span> / 30점</div><div>충족 항목 ${n} / 6개</div>
+    <div class="ladder">${[['A','30점'],['B','25점'],['C','20점'],['D','15점'],['F','10점 이하']].map(([g,p])=>`<span class="${g===gr?'me':''}">${g} ${p}</span>`).join('')}</div></div></div>
+   <table class="st"><tr><th>평가 항목</th><th>충족</th><th>시도</th><th class="noprint-x">재수행</th></tr>
+   ${STAGE_NAMES.map((nm,i)=>`<tr><td class="l">${'①②③④⑤⑥'[i]} ${nm}</td><td>${S[i].status===true?'<span class="o">O</span>':S[i].status===false?'<span class="x">X</span>':'-'}</td><td>${S[i].attempts}회</td><td>${Math.max(0,S[i].attempts-1)}회</td></tr>`).join('')}</table>
+   <h3 style="margin:14px 0 4px;font-size:23px;color:var(--teal)">과제 수행 과정 피드백</h3>
+   <div class="fb"><p>${summary}</p>${fbLines}</div>
+   ${failed.length?`<div class="up" data-html2canvas-ignore><div style="font-size:20px"><span class="hl">${gr}등급 → ${nextGr}등급</span>으로 올리려면?</div>
+    <p style="margin:4px 0">미충족 항목 <span class="hl">1개</span>를 더 충족하면 5점이 올라 ${nextGr}등급이 됩니다. 이미 충족한 단계는 다시 할 필요가 없어요. 아래의 <span class="ht">부족한 단계만</span> 다시 수행하세요.</p>
+    <div class="row">${failed.map(i=>`<button class="btn" data-go="${i}">${i+1}단계 ${STAGE_NAMES[i]} ${S[i].attempts?'다시 수행하기':'수행하기'}</button>`).join('')}</div></div>`
+   :`<div class="up" style="background:#e8f7ee;border-color:#9ad5b2"><span class="ht">최고 등급 A를 달성했습니다.</span> 모든 평가 항목을 충족했어요.</div>`}
+  </div>
+  <div class="row noprint" style="margin-top:16px"><button class="btn teal" id="dlImg">결과 이미지 저장 (PNG)</button><button class="btn ghost" id="dlPdf">PDF로 저장 (인쇄)</button><span id="dlMsg" style="font-size:15px;color:var(--sub)"></span></div>`;
+  $('#rep').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b)go(+b.dataset.go)});
+  $('#dlImg').onclick=async()=>{
+    if(typeof html2canvas==='undefined'){$('#dlMsg').textContent='인터넷 연결이 필요합니다. PDF 저장(인쇄)을 이용하거나 화면을 캡처하세요.';return}
+    $('#dlMsg').textContent='이미지를 만드는 중…';
+    try{const c=await html2canvas($('#rep'),{scale:2,backgroundColor:'#ffffff'});const a=document.createElement('a');a.href=c.toDataURL('image/png');a.download=`화재유형탐구_${student.id}_${student.name}.png`;document.body.appendChild(a);a.click();a.remove();$('#dlMsg').textContent='저장했습니다.'}
+    catch(err){$('#dlMsg').textContent='저장에 실패했습니다. PDF 저장(인쇄)을 이용하세요.'}};
+  $('#dlPdf').onclick=()=>{try{window.print()}catch(e){$('#dlMsg').textContent='인쇄 창을 열 수 없습니다.'}};
+}
+
+go(-1);
+}
+</script>
+</body>
+</html>
